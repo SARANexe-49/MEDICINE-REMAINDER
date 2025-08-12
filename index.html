@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Medicine Reminder — Voice Alerts</title>
+
+  <!-- Google font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg1:#0f1724;
+      --bg2:#0b1220;
+      --accent1:#5eead4;
+      --accent2:#60a5fa;
+      --card:#0b1228cc;
+      --glass: rgba(255,255,255,0.04);
+      --muted: #98a2b3;
+      --white: #edf2f7;
+      --success: #10b981;
+    }
+    *{box-sizing:border-box;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;}
+    html,body{height:100%;margin:0}
+
+    body{
+      background: radial-gradient(1200px 600px at 10% 20%, rgba(96,165,250,0.12), transparent 8%),
+                  radial-gradient(1000px 500px at 90% 80%, rgba(94,234,212,0.06), transparent 8%),
+                  linear-gradient(160deg,var(--bg1),var(--bg2));
+      color:var(--white);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px;
+      -webkit-font-smoothing:antialiased;
+    }
+
+    .app {
+      width:100%;
+      max-width:980px;
+      min-height:520px;
+      border-radius:16px;
+      padding:22px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      box-shadow: 0 10px 40px rgba(2,6,23,0.6);
+      border: 1px solid rgba(255,255,255,0.03);
+      display:grid;
+      grid-template-columns: 420px 1fr;
+      gap:20px;
+    }
+
+    /* Header */
+    .header{
+      grid-column:1 / -1;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:6px;
+    }
+    .brand{
+      display:flex;align-items:center;gap:12px;
+    }
+    .logo{
+      width:56px;height:56px;border-radius:12px;
+      background:linear-gradient(135deg,var(--accent1),var(--accent2));
+      display:flex;align-items:center;justify-content:center;font-weight:700;color:#05273a;
+      box-shadow: 0 6px 20px rgba(16,185,129,0.08), inset 0 -6px 12px rgba(255,255,255,0.04);
+    }
+    h1{font-size:22px;margin:0}
+    .subtitle{color:var(--muted);font-size:13px;margin-top:4px}
+
+    .actions{display:flex;gap:10px;align-items:center}
+    .btn{
+      background:linear-gradient(90deg,var(--accent1),var(--accent2));
+      color:#04202b;padding:10px 14px;border-radius:10px;border:none;font-weight:600;cursor:pointer;
+      box-shadow: 0 8px 18px rgba(2,6,23,0.25);
+    }
+    .btn.ghost{background:transparent;color:var(--white);border:1px solid rgba(255,255,255,0.06)}
+
+    /* Left card - form */
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      padding:18px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.35);
+    }
+    label{display:block;color:var(--muted);font-size:13px;margin-bottom:6px;margin-top:8px}
+    input[type="text"], input[type="datetime-local"], select{
+      width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);
+      background: rgba(255,255,255,0.01); color:var(--white); font-size:14px;
+    }
+    .row{display:flex;gap:8px}
+    .row .col{flex:1}
+    .small{font-size:13px;color:var(--muted)}
+
+    .checkbox {display:flex;align-items:center;gap:8px;color:var(--muted);margin-top:8px}
+
+    /* Right - list */
+    .list-wrap{display:flex;flex-direction:column;gap:12px}
+    .list-head{display:flex;justify-content:space-between;align-items:center}
+    .list{overflow:auto;padding:10px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));min-height:300px}
+    .rem-card{
+      background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border:1px solid rgba(255,255,255,0.03);
+      padding:12px;border-radius:12px;margin-bottom:10px;display:flex;justify-content:space-between;gap:12px;
+      align-items:center;
+    }
+    .meta{color:var(--muted);font-size:13px}
+    .rem-title{font-weight:700;font-size:15px}
+    .rem-dose{color:var(--muted);font-size:13px;margin-top:4px}
+
+    .rem-actions{display:flex;gap:8px}
+    .chip{background:rgba(255,255,255,0.02);padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+    .chip.snooze{background:transparent;border:1px dashed rgba(255,255,255,0.04)}
+
+    /* alert popup */
+    .alert-popup{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:linear-gradient(180deg,var(--card), rgba(255,255,255,0.02));padding:12px 14px;border-radius:12px;box-shadow:0 12px 40px rgba(2,6,23,0.5);display:flex;gap:12px;align-items:center;z-index:999}
+    .alert-popup .title{font-weight:700}
+    .pulse{width:10px;height:10px;border-radius:50%;background:var(--success);box-shadow:0 6px 18px rgba(16,185,129,0.18)}
+
+    /* empty */
+    .empty{color:var(--muted);padding:30px;text-align:center}
+
+    /* responsive */
+    @media (max-width:900px){
+      .app{grid-template-columns:1fr; padding:16px}
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app" role="application" aria-label="Medicine Reminder App">
+    <div class="header">
+      <div class="brand">
+        <div class="logo">MR</div>
+        <div>
+          <h1>Medicine Reminder</h1>
+          <div class="subtitle">Voice alerts • Notifications • Snooze</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="enableBtn" class="btn">Enable Notifications & Voice</button>
+        <button id="importBtn" class="btn ghost" title="Clear all (demo)">Clear All</button>
+      </div>
+    </div>
+
+    <!-- left: add reminder -->
+    <div class="card">
+      <h3 style="margin-top:0">Add Reminder</h3>
+
+      <form id="reminderForm" autocomplete="off">
+        <label for="medName">Medicine name</label>
+        <input id="medName" name="medName" type="text" placeholder="e.g. Paracetamol" required>
+
+        <label for="dose">Dose (optional)</label>
+        <input id="dose" name="dose" type="text" placeholder="e.g. 500 mg">
+
+        <label for="datetime">Date & Time</label>
+        <input id="datetime" name="datetime" type="datetime-local" required>
+
+        <label for="recurrence">Repeat</label>
+        <select id="recurrence" name="recurrence">
+          <option value="once">Once</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+        </select>
+
+        <div class="checkbox">
+          <label><input id="voiceCheck" type="checkbox" checked> Voice alert</label>
+          <label style="margin-left:8px"><input id="soundCheck" type="checkbox" checked> Sound alert</label>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:10px">
+          <button type="submit" class="btn">Add Reminder</button>
+          <button type="button" id="showSample" class="btn ghost">Add Sample</button>
+        </div>
+      </form>
+
+      <p class="small" style="margin-top:12px">Tip: Keep this tab open or in background. For reliable background delivery use mobile native app.</p>
+    </div>
+
+    <!-- right: reminders list -->
+    <div class="list-wrap">
+      <div class="list-head">
+        <div>
+          <h3 style="margin:0">Active Reminders</h3>
+          <div class="small">Next medicines & controls</div>
+        </div>
+      </div>
+
+      <div class="list" id="reminderList">
+        <!-- rendered items -->
+      </div>
+    </div>
+  </div>
+
+  <!-- alert popup container -->
+  <div id="alertsContainer" style="position:fixed;right:18px;top:80px;z-index:1200"></div>
+
+  <!-- small beep (tiny silent wav) -->
+  <audio id="beep">
+    <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAABErAAABAAgAZGF0YQAAAAA=" type="audio/wav">
+  </audio>
+
+<script>
+/* Medicine Reminder App JS (modern UI) */
+/* Storage and helpers */
+const STORAGE_KEY = 'med_reminders_v2';
+const CLASS_NAMES = ['Acne','Eczema']; // not used here; leftover from other app
+
+const $ = selector => document.querySelector(selector);
+const uid = () => Math.random().toString(36).slice(2,9);
+
+function loadReminders(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+  catch(e){ return []; }
+}
+function saveReminders(list){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+}
+
+/* Notification & voice */
+async function enablePermissions(){
+  if('Notification' in window && Notification.permission !== 'granted'){
+    await Notification.requestPermission();
+  }
+  showToast('Notifications enabled (if supported).');
+}
+function showToast(msg, ms=2200){
+  const el = document.createElement('div');
+  el.className = 'alert-popup';
+  el.innerHTML = `<div style="display:flex;gap:12px;align-items:center">
+    <div class="pulse" aria-hidden></div>
+    <div><div class="title">${msg}</div></div>
+  </div>`;
+  document.body.appendChild(el);
+  setTimeout(()=> el.remove(), ms);
+}
+function notify(title, body){
+  if('Notification' in window && Notification.permission === 'granted'){
+    try{ new Notification(title, { body }); }catch(e){}
+  }
+}
+function speak(text){
+  if(!('speechSynthesis' in window)) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 1; u.pitch = 1;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+}
+
+/* Render reminders */
+function renderList(){
+  const list = loadReminders().sort((a,b)=> new Date(a.next) - new Date(b.next));
+  const container = $('#reminderList');
+  container.innerHTML = '';
+  if(!list.length){ container.innerHTML = '<div class="empty">No reminders yet.</div>'; return; }
+
+  for(const r of list){
+    const card = document.createElement('div');
+    card.className = 'rem-card';
+    const left = document.createElement('div');
+    left.style.flex='1';
+    left.innerHTML = `<div class="rem-title">${escapeHtml(r.name)}</div>
+                      <div class="rem-dose">${escapeHtml(r.dose||'')} ${r.dose?'<span style="margin-left:8px;color:var(--muted);font-size:13px">•</span>':''}
+                      <span class="meta" style="margin-left:8px">${new Date(r.next).toLocaleString()}</span></div>
+                      <div class="meta" style="margin-top:6px">Repeat: ${r.recurring}</div>`;
+    const right = document.createElement('div'); right.className='rem-actions';
+
+    const snooze = document.createElement('button');
+    snooze.className='chip snooze';
+    snooze.innerText = 'Snooze 5m';
+    snooze.onclick = ()=> snoozeReminder(r.id,5);
+
+    const done = document.createElement('button');
+    done.className='chip';
+    done.innerText = 'Done';
+    done.onclick = ()=> { removeReminder(r.id); };
+
+    right.appendChild(snooze);
+    right.appendChild(done);
+
+    card.appendChild(left);
+    card.appendChild(right);
+    container.appendChild(card);
+  }
+}
+
+/* Simple HTML-escape */
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;" }[c])); }
+
+/* Add/remove/snooze */
+function addReminder(obj){
+  const list = loadReminders();
+  list.push(obj);
+  saveReminders(list);
+  renderList();
+}
+function removeReminder(id){
+  const list = loadReminders().filter(x=> x.id !== id);
+  saveReminders(list);
+  renderList();
+}
+function snoozeReminder(id, mins=5){
+  const list = loadReminders();
+  const r = list.find(x=> x.id===id);
+  if(!r) return;
+  const d = new Date(r.next); d.setMinutes(d.getMinutes()+mins);
+  r.next = d.toISOString();
+  saveReminders(list);
+  renderList();
+  showToast('Snoozed 5 minutes');
+}
+
+/* Checker: runs every 4s */
+setInterval(()=> {
+  const list = loadReminders();
+  if(!list.length) return;
+  const now = Date.now();
+  let updated=false;
+  for(const r of list){
+    const next = new Date(r.next).getTime();
+    if(next <= now + 1000){ // due now
+      triggerReminder(r);
+      // update next/finalize
+      if(r.recurring === 'once'){
+        r._remove = true;
+      } else if(r.recurring === 'daily'){
+        const d = new Date(r.next); d.setDate(d.getDate()+1); r.next = d.toISOString();
+      } else if(r.recurring === 'weekly'){
+        const d = new Date(r.next); d.setDate(d.getDate()+7); r.next = d.toISOString();
+      }
+      updated = true;
+    }
+  }
+  if(updated){
+    const newList = list.filter(x=> !x._remove);
+    saveReminders(newList);
+    renderList();
+  }
+}, 4000);
+
+/* Trigger UI + audio + speech */
+function triggerReminder(r){
+  notify(`Time to take ${r.name}`, r.dose || '');
+  if(r.sound){
+    try{ $('#beep').currentTime = 0; $('#beep').play(); }catch(e){}
+  }
+  if(r.voice){
+    speak(`Reminder. Take ${r.name}. ${r.dose || ''}`);
+  }
+  // temporary popup with snooze/done
+  const popup = document.createElement('div');
+  popup.className = 'alert-popup';
+  popup.innerHTML = `<div style="display:flex;gap:12px;align-items:center">
+    <div class="pulse" aria-hidden></div>
+    <div>
+      <div style="font-weight:700">${escapeHtml(r.name)}</div>
+      <div class="meta" style="margin-top:6px">${new Date(r.next).toLocaleString()}</div>
+    </div>
+    <div style="margin-left:16px;display:flex;gap:8px">
+      <button class="chip" id="pSnooze">Snooze</button>
+      <button class="chip" id="pDone">Done</button>
+    </div>
+  </div>`;
+  const container = document.getElementById('alertsContainer') || document.body;
+  container.appendChild(popup);
+  popup.querySelector('#pSnooze').onclick = ()=> { snoozeReminder(r.id,5); popup.remove(); };
+  popup.querySelector('#pDone').onclick = ()=> { removeReminder(r.id); popup.remove(); };
+  setTimeout(()=> popup.remove(), 60000);
+}
+
+/* Form handling */
+$('#reminderForm').addEventListener('submit', (ev)=>{
+  ev.preventDefault();
+  const name = $('#medName').value.trim();
+  const dose = $('#dose').value.trim();
+  const dt = $('#datetime').value;
+  const recurring = $('#recurrence').value;
+  const voice = $('#voiceCheck').checked;
+  const sound = $('#soundCheck').checked;
+  if(!name || !dt){ alert('Fill medicine name and date/time'); return; }
+  const obj = {
+    id: uid(),
+    name, dose,
+    next: new Date(dt).toISOString(),
+    recurring, voice, sound,
+    created: new Date().toISOString()
+  };
+  addReminder(obj);
+  $('#reminderForm').reset();
+});
+
+/* small demo buttons */
+$('#enableBtn').addEventListener('click', async ()=> { await enablePermissions(); });
+$('#importBtn').addEventListener('click', ()=> {
+  if(!confirm('Clear all reminders?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  renderList();
+});
+
+/* sample quick add */
+$('#showSample').addEventListener('click', ()=> {
+  const soon = new Date(); soon.setMinutes(soon.getMinutes()+1);
+  const obj = { id: uid(), name:'Pressure tablet', dose:'250mg', next: soon.toISOString(), recurring:'once', voice:true, sound:true, created: new Date().toISOString() };
+  addReminder(obj);
+});
+
+/* init render */
+renderList();
+
+</script>
+</body>
+</html>
